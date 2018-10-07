@@ -1514,7 +1514,7 @@ class SlackChannel(object):
                 del self.hashed_messages[message_hash]
         self.messages = OrderedDict(messages_to_keep)
 
-    def change_message(self, ts, message_json=None, text=None):
+    def change_message(self, ts, message_json=None, text=None, inplace=True):
         ts = SlackTS(ts)
         m = self.messages.get(ts)
         if not m:
@@ -1524,6 +1524,9 @@ class SlackChannel(object):
         if text:
             m.change_text(text)
         new_text = m.render(force=True)
+        if not inplace:
+            self.buffer_prnt(m.sender, new_text, SlackTS(), tag_nick=m.sender_plain)
+            return
         modify_buffer_line(self.channel_buffer, new_text, ts.major, ts.minor)
 
     def edit_nth_previous_message(self, n, old, new, flags):
@@ -2637,12 +2640,12 @@ def subprocess_message_replied(message_json, eventrouter, channel, team):
 
 def subprocess_message_changed(message_json, eventrouter, channel, team):
     new_message = message_json.get("message", None)
-    channel.change_message(new_message["ts"], message_json=new_message)
+    channel.change_message(new_message["ts"], message_json=new_message, inplace=False)
 
 def subprocess_message_deleted(message_json, eventrouter, channel, team):
     message = "{}{}{}".format(
             w.color("red"), '(deleted)', w.color("reset"))
-    channel.change_message(message_json["deleted_ts"], text=message)
+    channel.change_message(message_json["deleted_ts"], text=message, inplace=False)
 
 
 def subprocess_channel_topic(message_json, eventrouter, channel, team):
