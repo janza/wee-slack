@@ -1223,7 +1223,7 @@ class SlackTeam(object):
             self.ws.send(encode_to_utf8(message))
             dbg("Sent {}...".format(message[:100]))
         except:
-            print "WS ERROR"
+            print("WS ERROR")
             dbg("Unexpected error: {}\nSent: {}".format(sys.exc_info()[0], data))
             self.set_connected()
 
@@ -2756,7 +2756,11 @@ def process_reaction_added(message_json, eventrouter, **kwargs):
         message = channel.messages.get(ts, None)
         if message:
             message.add_reaction(message_json["reaction"], message_json["user"])
-            channel.change_message(ts)
+            # channel.change_message(ts)
+            channel.buffer_prnt(
+                message_json["user"],
+                '{} | "{}..."'.format(message_json["reaction"], message.message_json['text'][:20])
+            )
     else:
         dbg("reaction to item type not supported: " + str(message_json))
 
@@ -2824,7 +2828,7 @@ def render(message_json, team, force=False):
         if message_json.get('mrkdwn', True):
             text = render_formatting(text)
 
-        text += create_reaction_string(message_json.get("reactions", ""))
+        # text += create_reaction_string(message_json.get("reactions", ""))
         message_json["_rendered_text"] = text
         return text
 
