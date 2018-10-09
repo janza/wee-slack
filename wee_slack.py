@@ -2758,8 +2758,12 @@ def process_reaction_added(message_json, eventrouter, **kwargs):
             message.add_reaction(message_json["reaction"], message_json["user"])
             # channel.change_message(ts)
             channel.buffer_prnt(
-                message_json["user"],
-                '{} | "{}..."'.format(message_json["reaction"], message.message_json['text'][:20])
+                resolve_ref('@' + message_json["user"]),
+                ":{}: {}{}{}".format(
+                    message_json["reaction"],
+                    w.color("darkgray"),
+                    message.render()[:20],
+                    w.color("reset"))
             )
     else:
         dbg("reaction to item type not supported: " + str(message_json))
