@@ -208,7 +208,7 @@ class ProxyWrapper(object):
         self.proxy_user = ""
         self.proxy_password = ""
         self.has_proxy = False
-        
+
         if self.proxy_name:
             self.proxy_string = "weechat.proxy.{}".format(self.proxy_name)
             self.proxy_type = w.config_string(weechat.config_get("{}.type".format(self.proxy_string)))
@@ -220,21 +220,21 @@ class ProxyWrapper(object):
                 self.has_proxy = True
             else:
                 w.prnt("", "\nWarning: weechat.network.proxy_curl is set to {} type (name : {}, conf string : {}). Only HTTP proxy is supported.\n\n".format(self.proxy_type, self.proxy_name, self.proxy_string))
-        
+
     def curl(self):
         if not self.has_proxy:
             return ""
-        
+
         if self.proxy_user and self.proxy_password:
             user = "{}:{}@".format(self.proxy_user, self.proxy_password)
         else:
             user = ""
-                    
+
         if self.proxy_port:
             port = ":{}".format(self.proxy_port)
         else:
             port = ""
-                
+
         return "--proxy {}{}{}".format(user, self.proxy_address, port)
 
 
@@ -1519,13 +1519,17 @@ class SlackChannel(object):
         m = self.messages.get(ts)
         if not m:
             return
+        existing_text = m.render()
         if message_json:
             m.message_json.update(message_json)
         if text:
             m.change_text(text)
         new_text = m.render(force=True)
         if not inplace:
-            self.buffer_prnt(m.sender, new_text, SlackTS(), tag_nick=m.sender_plain)
+            new_text = '\n'.join(
+                l.strip() for l in new_text.replace(existing_text, '').split('\n') if l.strip()
+            )
+            self.buffer_prnt(m.sender, new_text, ts, tag_nick=m.sender_plain)
             return
         modify_buffer_line(self.channel_buffer, new_text, ts.major, ts.minor)
 
@@ -2590,25 +2594,6 @@ def subprocess_thread_message(message_json, eventrouter, channel, team):
             elif message.ts > channel.last_read and message.has_mention():
                 parent_message.notify_thread(action="mention", sender_id=message_json["user"])
 
-#    channel = channels.find(message_json["channel"])
-#    server = channel.server
-#    #threadinfo = channel.get_message(message_json["thread_ts"])
-#    message = Message(message_json, server=server, channel=channel)
-#    dbg(message, main_buffer=True)
-#
-#    orig = channel.get_message(message_json['thread_ts'])
-#    if orig[0]:
-#        channel.get_message(message_json['thread_ts'])[2].add_thread_message(message)
-#    else:
-#        dbg("COULDN'T find orig message {}".format(message_json['thread_ts']), main_buffer=True)
-
-    # if threadinfo[0]:
-    #    channel.messages[threadinfo[1]].become_thread()
-    #    message_json["item"]["ts"], message_json)
-    # channel.change_message(message_json["thread_ts"], None, message_json["text"])
-    # channel.become_thread(message_json["item"]["ts"], message_json)
-
-
 def subprocess_channel_join(message_json, eventrouter, channel, team):
     joinprefix = w.prefix("join").strip()
     message = SlackMessage(message_json, team, channel, override_sender=joinprefix)
@@ -3319,7 +3304,7 @@ def command_register_callback(data, command, return_code, out, err):
         w.prnt("", "ERROR: problem when trying to get Slack OAuth token. Got return code {}. Err: ".format(return_code, err))
         w.prnt("", "Check the network or proxy settings")
         return w.WEECHAT_RC_OK_EAT
-    
+
     if len(out) <= 0:
         w.prnt("", "ERROR: problem when trying to get Slack OAuth token. Got 0 length answer. Err: ".format(err))
         w.prnt("", "Check the network or proxy settings")
