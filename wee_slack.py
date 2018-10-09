@@ -1531,13 +1531,17 @@ class SlackChannel(object):
         m = self.messages.get(ts)
         if not m:
             return
+        existing_text = m.render()
         if message_json:
             m.message_json.update(message_json)
         if text:
             m.change_text(text)
         new_text = self.render(m, force=True)
         if not inplace:
-            self.buffer_prnt(m.sender, new_text, SlackTS(), tag_nick=m.sender_plain)
+            new_text = '\n'.join(
+                l.strip() for l in new_text.replace(existing_text, '').split('\n') if l.strip()
+            )
+            self.buffer_prnt(m.sender, new_text, ts, tag_nick=m.sender_plain)
             return
         modify_buffer_line(self.channel_buffer, new_text, ts.major, ts.minor)
 
@@ -2610,25 +2614,6 @@ def subprocess_thread_message(message_json, eventrouter, channel, team):
             if config.thread_messages_in_channel:
                 channel.buffer_prnt(
                     message.sender, channel.render(message), message.ts, tag_nick=message.sender_plain)
-
-#    channel = channels.find(message_json["channel"])
-#    server = channel.server
-#    #threadinfo = channel.get_message(message_json["thread_ts"])
-#    message = Message(message_json, server=server, channel=channel)
-#    dbg(message, main_buffer=True)
-#
-#    orig = channel.get_message(message_json['thread_ts'])
-#    if orig[0]:
-#        channel.get_message(message_json['thread_ts'])[2].add_thread_message(message)
-#    else:
-#        dbg("COULDN'T find orig message {}".format(message_json['thread_ts']), main_buffer=True)
-
-    # if threadinfo[0]:
-    #    channel.messages[threadinfo[1]].become_thread()
-    #    message_json["item"]["ts"], message_json)
-    # channel.change_message(message_json["thread_ts"], None, message_json["text"])
-    # channel.become_thread(message_json["item"]["ts"], message_json)
-
 
 def subprocess_channel_join(message_json, eventrouter, channel, team):
     joinprefix = w.prefix("join").strip()
