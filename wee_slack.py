@@ -208,7 +208,7 @@ class ProxyWrapper(object):
         self.proxy_user = ""
         self.proxy_password = ""
         self.has_proxy = False
-        
+
         if self.proxy_name:
             self.proxy_string = "weechat.proxy.{}".format(self.proxy_name)
             self.proxy_type = w.config_string(weechat.config_get("{}.type".format(self.proxy_string)))
@@ -220,21 +220,21 @@ class ProxyWrapper(object):
                 self.has_proxy = True
             else:
                 w.prnt("", "\nWarning: weechat.network.proxy_curl is set to {} type (name : {}, conf string : {}). Only HTTP proxy is supported.\n\n".format(self.proxy_type, self.proxy_name, self.proxy_string))
-        
+
     def curl(self):
         if not self.has_proxy:
             return ""
-        
+
         if self.proxy_user and self.proxy_password:
             user = "{}:{}@".format(self.proxy_user, self.proxy_password)
         else:
             user = ""
-                    
+
         if self.proxy_port:
             port = ":{}".format(self.proxy_port)
         else:
             port = ""
-                
+
         return "--proxy {}{}{}".format(user, self.proxy_address, port)
 
 
@@ -1223,7 +1223,7 @@ class SlackTeam(object):
             self.ws.send(encode_to_utf8(message))
             dbg("Sent {}...".format(message[:100]))
         except:
-            print "WS ERROR"
+            print("WS ERROR")
             dbg("Unexpected error: {}\nSent: {}".format(sys.exc_info()[0], data))
             self.set_connected()
 
@@ -2992,10 +2992,29 @@ def unwrap_attachments(message_json, text_before):
 
 
 def unwrap_files(message_json, text_before):
-    files_texts = ['{} ({})'.format(f['url_private'], f['title'])
-            for f in message_json.get('files', [])]
+    files_texts = []
+    for f in message_json.get('files', []):
+        url = f['url_private']
+        if config.get_string('files_url'):
+            url = '{}{}'.format(config.get_string('files_url'), f['id'])
+
+        files_texts.append('{} ({})'.format(url, f['title']))
+
+        download_location = config.get_string('files_download_location')
+        if download_location:
+            weechat.hook_process_hashtable(
+                "url:" + f['url_private'],
+                {
+                    'file_out': os.path.join(download_location, f['id']),
+                    'httpheader': 'Authorization: Bearer ' + config.get_string('slack_api_token')
+                },
+                config.slack_timeout, "", "")
+        weechat.prnt("", config.get_string('slack_api_token'))
+        weechat.prnt("", download_location)
+
     if text_before:
         files_texts.insert(0, '')
+
     return "\n".join(files_texts)
 
 
@@ -3328,7 +3347,7 @@ def command_register_callback(data, command, return_code, out, err):
         w.prnt("", "ERROR: problem when trying to get Slack OAuth token. Got return code {}. Err: ".format(return_code, err))
         w.prnt("", "Check the network or proxy settings")
         return w.WEECHAT_RC_OK_EAT
-    
+
     if len(out) <= 0:
         w.prnt("", "ERROR: problem when trying to get Slack OAuth token. Got 0 length answer. Err: ".format(err))
         w.prnt("", "Check the network or proxy settings")
@@ -3864,6 +3883,13 @@ class PluginConfig(object):
         'external_user_suffix': Setting(
             default='*',
             desc='The suffix appended to nicks to indicate external users.'),
+        'files_download_location': Setting(
+            default='',
+            desc='If set, wee-slack will download files to this location.'),
+        'files_url': Setting(
+            default='',
+            desc='If set, links to files will be replaced with this url and'
+            ' the file attachment.'),
         'group_name_prefix': Setting(
             default='&',
             desc='The prefix of buffer names for groups (private channels).'),
