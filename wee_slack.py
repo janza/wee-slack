@@ -3009,7 +3009,7 @@ def unwrap_files(message_json, text_before):
     for f in message_json.get('files', []):
         url = f['url_private']
         if config.get_string('files_url'):
-            url = urllib.quote_plus('{}{}_{}'.format(config.get_string('files_url'), f['id'], f['title']))
+            url = config.get_string('files_url') + urllib.quote_plus('{}_{}'.format(f['id'], f['title']))
 
         files_texts.append('{} ({})'.format(url, f['title']))
 
