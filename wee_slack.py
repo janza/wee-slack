@@ -2993,10 +2993,29 @@ def unwrap_attachments(message_json, text_before):
 
 
 def unwrap_files(message_json, text_before):
-    files_texts = ['{} ({})'.format(f['url_private'], f['title'])
-            for f in message_json.get('files', [])]
+    files_texts = []
+    for f in message_json.get('files', []):
+        url = f['url_private']
+        if config.get_string('files_url'):
+            url = '{}{}'.format(config.get_string('files_url'), f['id'])
+
+        files_texts.append('{} ({})'.format(url, f['title']))
+
+        download_location = config.get_string('files_download_location')
+        if download_location:
+            weechat.hook_process_hashtable(
+                "url:" + f['url_private'],
+                {
+                    'file_out': os.path.join(download_location, f['id']),
+                    'httpheader': 'Authorization: Bearer ' + config.get_string('slack_api_token')
+                },
+                config.slack_timeout, "", "")
+        weechat.prnt("", config.get_string('slack_api_token'))
+        weechat.prnt("", download_location)
+
     if text_before:
         files_texts.insert(0, '')
+
     return "\n".join(files_texts)
 
 
@@ -3872,6 +3891,13 @@ class PluginConfig(object):
         'external_user_suffix': Setting(
             default='*',
             desc='The suffix appended to nicks to indicate external users.'),
+        'files_download_location': Setting(
+            default='',
+            desc='If set, wee-slack will download files to this location.'),
+        'files_url': Setting(
+            default='',
+            desc='If set, links to files will be replaced with this url and'
+            ' the file attachment.'),
         'group_name_prefix': Setting(
             default='&',
             desc='The prefix of buffer names for groups (private channels).'),
