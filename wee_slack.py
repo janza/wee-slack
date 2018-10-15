@@ -3010,8 +3010,6 @@ def unwrap_files(message_json, text_before):
                     'httpheader': 'Authorization: Bearer ' + config.get_string('slack_api_token')
                 },
                 config.slack_timeout, "", "")
-        weechat.prnt("", config.get_string('slack_api_token'))
-        weechat.prnt("", download_location)
 
     if text_before:
         files_texts.insert(0, '')
