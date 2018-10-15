@@ -2599,7 +2599,7 @@ def process_message(message_json, eventrouter, store=True, **kwargs):
             weechat.hook_process_hashtable(
                 "url:" + f['url_private'],
                 {
-                    'file_out': os.path.join(download_location, f['id'] + '_' + f['title']),
+                    'file_out': os.path.join(download_location, '{}_{}.{}'.format(f['id'], f['title'], f['filetype'])),
                     'httpheader': 'Authorization: Bearer ' + team.token
                 },
                 config.slack_timeout, "", "")
@@ -3009,7 +3009,7 @@ def unwrap_files(message_json, text_before):
     for f in message_json.get('files', []):
         url = f['url_private']
         if config.get_string('files_url'):
-            url = config.get_string('files_url') + urllib.quote_plus('{}_{}'.format(f['id'], f['title']))
+            url = config.get_string('files_url') + urllib.quote_plus('{}_{}.{}'.format(f['id'], f['title'].replace(' ', ''), f['filetype']))
 
         files_texts.append('{} ({})'.format(url, f['title']))
 
