@@ -2599,7 +2599,7 @@ def process_message(message_json, eventrouter, store=True, **kwargs):
             weechat.hook_process_hashtable(
                 "url:" + f['url_private'],
                 {
-                    'file_out': os.path.join(download_location, '{}_{}.{}'.format(f['id'], f['title'], f['filetype'])),
+                    'file_out': os.path.join(download_location, '{}_{}.{}'.format(f['id'], f['title'].replace(' ', ''), f['filetype'])),
                     'httpheader': 'Authorization: Bearer ' + team.token
                 },
                 config.slack_timeout, "", "")
