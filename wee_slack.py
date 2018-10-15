@@ -2574,24 +2574,24 @@ def process_message(message_json, eventrouter, store=True, **kwargs):
     if subtype in subtype_functions:
         subtype_functions[subtype](message_json, eventrouter, channel, team)
         return
-
-    message = SlackMessage(message_json, team, channel)
-    text = channel.render(message)
-    dbg("Rendered message: %s" % text)
-    dbg("Sender: %s (%s)" % (message.sender, message.sender_plain))
-
-    if subtype == 'me_message':
-        prefix = w.prefix("action").rstrip()
     else:
-        prefix = message.sender
+        message = SlackMessage(message_json, team, channel)
+        text = channel.render(message)
+        dbg("Rendered message: %s" % text)
+        dbg("Sender: %s (%s)" % (message.sender, message.sender_plain))
 
-    channel.buffer_prnt(prefix, text, message.ts,
-            tag_nick=message.sender_plain, **kwargs)
-    channel.unread_count_display += 1
+        if subtype == 'me_message':
+            prefix = w.prefix("action").rstrip()
+        else:
+            prefix = message.sender
 
-    if store:
-        channel.store_message(message, team)
-    dbg("NORMAL REPLY {}".format(message_json))
+        channel.buffer_prnt(prefix, text, message.ts,
+                tag_nick=message.sender_plain, **kwargs)
+        channel.unread_count_display += 1
+
+        if store:
+            channel.store_message(message, team)
+        dbg("NORMAL REPLY {}".format(message_json))
 
     for f in message_json.get('files', []):
         download_location = config.get_string('files_download_location')
@@ -2599,7 +2599,7 @@ def process_message(message_json, eventrouter, store=True, **kwargs):
             weechat.hook_process_hashtable(
                 "url:" + f['url_private'],
                 {
-                    'file_out': os.path.join(download_location, f['id']),
+                    'file_out': os.path.join(download_location, f['id'] + '_' + f['title']),
                     'httpheader': 'Authorization: Bearer ' + team.token
                 },
                 config.slack_timeout, "", "")
@@ -2659,17 +2659,6 @@ def subprocess_message_replied(message_json, eventrouter, channel, team):
 def subprocess_message_changed(message_json, eventrouter, channel, team):
     new_message = message_json.get("message", None)
     channel.change_message(new_message["ts"], message_json=new_message, inplace=False)
-
-    for f in new_message.get('files', []):
-        download_location = config.get_string('files_download_location')
-        if download_location:
-            weechat.hook_process_hashtable(
-                "url:" + f['url_private'],
-                {
-                    'file_out': os.path.join(download_location, f['id']),
-                    'httpheader': 'Authorization: Bearer ' + team.token
-                },
-                config.slack_timeout, "", "")
 
 def subprocess_message_deleted(message_json, eventrouter, channel, team):
     message = "{}{}{}".format(
@@ -3020,7 +3009,7 @@ def unwrap_files(message_json, text_before):
     for f in message_json.get('files', []):
         url = f['url_private']
         if config.get_string('files_url'):
-            url = '{}{}'.format(config.get_string('files_url'), f['id'])
+            url = '{}{}_{}'.format(config.get_string('files_url'), f['id'], f['title'])
 
         files_texts.append('{} ({})'.format(url, f['title']))
 
