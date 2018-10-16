@@ -2594,6 +2594,8 @@ def process_message(message_json, eventrouter, store=True, **kwargs):
         dbg("NORMAL REPLY {}".format(message_json))
 
     for f in message_json.get('files', []):
+        if message_json['mode'] == 'tombstone':
+            continue
         download_location = config.get_string('files_download_location')
         if download_location:
             weechat.hook_process_hashtable(
@@ -3007,11 +3009,17 @@ def unwrap_attachments(message_json, text_before):
 def unwrap_files(message_json, text_before):
     files_texts = []
     for f in message_json.get('files', []):
-        url = f['url_private']
-        if config.get_string('files_url'):
-            url = config.get_string('files_url') + urllib.quote_plus('{}_{}.{}'.format(f['id'], f['title'].replace(' ', ''), f['filetype']))
+        if f.get('mode', '') != 'tombstone':
+            url = f['url_private']
+            if config.get_string('files_url'):
+                url = config.get_string('files_url') + urllib.quote_plus('{}_{}.{}'.format(f['id'], f['title'].replace(' ', ''), f['filetype']))
 
-        files_texts.append('{} ({})'.format(url, f['title']))
+            text = '{} ({})'.format(url, f['title'])
+        else:
+            text = '{}(This file was deleted.){}'.format(
+                w.color("red"),
+                w.color("reset"))
+        files_texts.append(text)
 
     if text_before:
         files_texts.insert(0, '')
