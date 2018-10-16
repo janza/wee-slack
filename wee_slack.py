@@ -2594,8 +2594,9 @@ def process_message(message_json, eventrouter, store=True, **kwargs):
         dbg("NORMAL REPLY {}".format(message_json))
 
     for f in message_json.get('files', []):
-        if message_json['mode'] == 'tombstone':
+        if f.get('mode', '') == 'tombstone':
             continue
+
         download_location = config.get_string('files_download_location')
         if download_location:
             weechat.hook_process_hashtable(
